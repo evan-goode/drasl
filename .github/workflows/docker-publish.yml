@@ -14,6 +14,10 @@ jobs:
       - uses: cachix/install-nix-action@v20
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: cachix/cachix-action@v14
+        with:
+          name: unmojang
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - name: Extract metadata (tags, labels)
         id: meta
