@@ -67,7 +67,7 @@
         pkgs.dockerTools.buildLayeredImage {
           name = "unmojang/drasl-test";
           contents = with pkgs; [cacert];
-          config.Cmd = "${buildDrasl pkgs}/bin/drasl";
+          config.Cmd = ["${buildDrasl pkgs}/bin/drasl"];
         };
     in rec {
       drasl = buildDrasl nixpkgsFor.${system};
