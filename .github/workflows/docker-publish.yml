@@ -36,14 +36,18 @@ jobs:
       - name: Build and push OCI image
         env:
           REFERENCES: ${{ steps.meta.outputs.tags }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
+          echo "$DOCKERHUB_TOKEN" | buildah login -u "$DOCKERHUB_USERNAME" --password-stdin docker.io
+
+          buildah manifest create drasl
+
           for system in 'x86_64-linux' 'aarch64-linux'; do
             oci_archive="$(nix build --no-link --print-out-paths ".#oci-cross-$system")"
+            buildah manifest add drasl "docker-archive:$oci_archive"
+          done
 
-            for reference in $REFERENCES; do
-              skopeo --insecure-policy copy \
-                --dest-creds='${{ secrets.DOCKERHUB_USERNAME }}:${{ secrets.DOCKERHUB_TOKEN }}' \
-                "docker-archive:$oci_archive" \
-                "docker://$reference"
-            done
+          for reference in $REFERENCES; do
+            buildah manifest push --all -f v2s2 drasl "docker://$reference"
           done
