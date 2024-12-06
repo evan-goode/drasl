@@ -24,10 +24,11 @@ type authlibInjectorMeta struct {
 }
 
 type authlibInjectorResponse struct {
-	Meta                authlibInjectorMeta `json:"meta"`
-	SignaturePublickey  string              `json:"signaturePublickey"`
-	SignaturePublickeys []string            `json:"signaturePublickeys"`
-	SkinDomains         []string            `json:"skinDomains"`
+	Meta                  authlibInjectorMeta `json:"meta"`
+	SignaturePublickey    string              `json:"signaturePublickey"`
+	PlayerCertificateKeys []string            `json:"playerCertificateKeys"`
+	ProfilePropertyKeys   []string            `json:"profilePropertyKeys"`
+	SkinDomains           []string            `json:"skinDomains"`
 }
 
 func authlibInjectorSerializeKey(key *rsa.PublicKey) (string, error) {
@@ -56,11 +57,18 @@ func AuthlibInjectorRoot(app *App) func(c echo.Context) error {
 	signaturePublicKey, err := authlibInjectorSerializeKey(&app.Key.PublicKey)
 	Check(err)
 
-	signaturePublicKeys := make([]string, 0, len(app.ProfilePropertyKeys))
+	playerCertificateKeys := make([]string, 0, len(app.PlayerCertificateKeys))
+	for _, key := range app.PlayerCertificateKeys {
+		serialized, err := authlibInjectorSerializeKey(&key)
+		Check(err)
+		playerCertificateKeys = append(playerCertificateKeys, serialized)
+	}
+
+	profilePropertyKeys := make([]string, 0, len(app.ProfilePropertyKeys))
 	for _, key := range app.ProfilePropertyKeys {
 		serialized, err := authlibInjectorSerializeKey(&key)
 		Check(err)
-		signaturePublicKeys = append(signaturePublicKeys, serialized)
+		profilePropertyKeys = append(profilePropertyKeys, serialized)
 	}
 
 	responseBlob := Unwrap(json.Marshal(authlibInjectorResponse{
@@ -74,9 +82,10 @@ func AuthlibInjectorRoot(app *App) func(c echo.Context) error {
 			ServerName:              app.Config.InstanceName,
 			FeatureEnableProfileKey: true,
 		},
-		SignaturePublickey:  signaturePublicKey,
-		SignaturePublickeys: signaturePublicKeys,
-		SkinDomains:         skinDomains,
+		SignaturePublickey:    signaturePublicKey,
+		ProfilePropertyKeys:   profilePropertyKeys,
+		PlayerCertificateKeys: playerCertificateKeys,
+		SkinDomains:           skinDomains,
 	}))
 
 	return func(c echo.Context) error {
